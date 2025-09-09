@@ -238,6 +238,19 @@ class WorkflowStage(BaseModel):
     required: bool = True
 
 
+class WorkflowConfig(BaseModel):
+    """Workflow configuration for bio matching."""
+    enable_social_search: bool = True
+    enable_profile_analysis: bool = True
+    detailed_summaries: bool = True
+    max_final_results: int = 10
+    max_bio_matches: int = 50
+    social_platforms: List[str] = Field(default_factory=lambda: ["linkedin"])
+    compatibility_threshold: float = Field(0.6, ge=0.0, le=1.0)
+    include_explanations: bool = True
+    parallel_processing: bool = True
+
+
 class WorkflowExecution(BaseModel):
     """Workflow execution tracking."""
     execution_id: str = Field(default_factory=lambda: str(uuid.uuid4()))

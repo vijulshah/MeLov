@@ -1,0 +1,186 @@
+# Enhanced Agentic Configuration with LangGraph and MCP Support
+
+# LangGraph Configuration
+langgraph:
+  enable_checkpointing: true
+  checkpoint_storage: "memory"  # Options: memory, sqlite, postgres
+  max_workflow_steps: 50
+  step_timeout_seconds: 300
+  enable_visualization: true
+  enable_tracing: true
+
+# Model Context Protocol (MCP) Configuration
+mcp:
+  enabled: true
+  servers:
+    bio_processing:
+      endpoint: "http://localhost:8001/mcp"
+      timeout_seconds: 30
+      max_retries: 3
+      capabilities: ["tools", "resources", "prompts"]
+    
+    social_analysis:
+      endpoint: "http://localhost:8002/mcp"
+      timeout_seconds: 45
+      max_retries: 3
+      capabilities: ["tools", "resources"]
+    
+    vector_search:
+      endpoint: "http://localhost:8003/mcp"
+      timeout_seconds: 60
+      max_retries: 3
+      capabilities: ["tools", "resources"]
+    
+    compatibility_scoring:
+      endpoint: "http://localhost:8004/mcp"
+      timeout_seconds: 30
+      max_retries: 3
+      capabilities: ["tools", "prompts"]
+
+# Workflow Configuration
+workflow:
+  orchestration_mode: "hybrid"  # Options: legacy, langgraph, hybrid
+  enable_parallel_processing: true
+  max_concurrent_agents: 3
+  enable_caching: true
+  cache_ttl_hours: 24
+  
+  # Default workflow settings
+  default_config:
+    enable_social_search: true
+    enable_profile_analysis: true
+    detailed_summaries: true
+    max_final_results: 10
+    max_bio_matches: 50
+    social_platforms: ["linkedin"]
+    compatibility_threshold: 0.7
+    include_explanations: true
+    parallel_processing: true
+
+# Agent Configuration with Enhanced Models
+agents:
+  query_processor:
+    model: "microsoft/Phi-3-mini-4k-instruct"
+    max_tokens: 2048
+    temperature: 0.3
+    timeout_seconds: 30
+    enable_mcp_tools: true
+    mcp_tools: ["analyze_user_query"]
+  
+  bio_matcher:
+    model: "microsoft/Phi-3-mini-4k-instruct"
+    max_tokens: 2048
+    temperature: 0.5
+    timeout_seconds: 60
+    enable_mcp_tools: true
+    mcp_tools: ["search_similar_profiles", "vector_search"]
+  
+  social_finder:
+    model: "microsoft/Phi-3-mini-4k-instruct"
+    max_tokens: 1024
+    temperature: 0.4
+    timeout_seconds: 90
+    enable_mcp_tools: true
+    mcp_tools: ["search_social_profiles", "linkedin_analysis"]
+  
+  profile_analyzer:
+    model: "microsoft/Phi-3-mini-4k-instruct"
+    max_tokens: 2048
+    temperature: 0.6
+    timeout_seconds: 120
+    enable_mcp_tools: true
+    mcp_tools: ["analyze_linkedin_profile", "analyze_social_activity"]
+  
+  compatibility_scorer:
+    model: "microsoft/Phi-3-mini-4k-instruct"
+    max_tokens: 2048
+    temperature: 0.4
+    timeout_seconds: 60
+    enable_mcp_tools: true
+    mcp_tools: ["calculate_compatibility", "batch_calculate_compatibility"]
+  
+  summary_generator:
+    model: "microsoft/Phi-3-mini-4k-instruct"
+    max_tokens: 3072
+    temperature: 0.7
+    timeout_seconds: 45
+    enable_mcp_tools: true
+    mcp_tools: ["generate_profile_summary", "generate_match_explanation"]
+
+# LLM Model Configuration
+llm_models:
+  phi3_mini:
+    model_name: "microsoft/Phi-3-mini-4k-instruct"
+    provider: "huggingface"
+    max_tokens: 4096
+    temperature: 0.7
+    use_case: "general"
+  
+  phi3_medium:
+    model_name: "microsoft/Phi-3-medium-4k-instruct"
+    provider: "huggingface"
+    max_tokens: 4096
+    temperature: 0.6
+    use_case: "complex_reasoning"
+  
+  llama3_8b:
+    model_name: "meta-llama/Meta-Llama-3-8B-Instruct"
+    provider: "huggingface"
+    max_tokens: 8192
+    temperature: 0.7
+    use_case: "detailed_analysis"
+
+# Performance and Monitoring
+performance:
+  enable_metrics: true
+  metrics_collection_interval: 60
+  enable_performance_logging: true
+  log_level: "INFO"
+  
+  # Resource limits
+  max_memory_mb: 8192
+  max_cpu_percent: 80
+  max_concurrent_workflows: 5
+  
+  # Timeouts
+  default_agent_timeout: 60
+  workflow_timeout_seconds: 1800
+  mcp_call_timeout: 30
+
+# Security Configuration
+security:
+  enable_data_anonymization: true
+  enable_pii_filtering: true
+  require_consent: true
+  max_data_retention_days: 30
+  encrypt_sensitive_data: true
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  log_to_file: true
+  log_file_path: "logs/agentic_workflow.log"
+  max_file_size_mb: 100
+  backup_count: 5
+  
+  # Component-specific logging
+  components:
+    langgraph: "INFO"
+    mcp: "INFO"
+    agents: "INFO"
+    vector_store: "DEBUG"
+    social_finder: "INFO"
+
+# Development and Testing
+development:
+  use_mock_llm: false
+  use_mock_mcp: false
+  enable_debug_mode: false
+  save_intermediate_results: true
+  enable_workflow_visualization: true
+  
+  # Testing configuration
+  test_mode: false
+  mock_data_path: "data/test_data"
+  test_timeout_seconds: 300

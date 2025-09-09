@@ -14,8 +14,25 @@ typing-extensions>=4.0.0
 # Logging and utilities
 colorlog>=6.0.0
 
+# LangGraph and MCP dependencies
+langgraph>=0.0.60
+langchain>=0.1.0
+langchain-core>=0.1.0
+mcp>=0.5.0  # Model Context Protocol
+httpx>=0.24.0
+websockets>=11.0.0
+
+# Agentic workflow dependencies
+langsmith>=0.0.80  # For tracing and monitoring
+langchain-experimental>=0.0.50
+
+# FastAPI for MCP server
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
 # Vector Store Dependencies
-faiss-cpu>=1.7.0  # Use faiss-gpu if you have CUDA support
+faiss-cpu>=1.7.0  # CPU version of FAISS
+faiss-gpu>=1.7.0  # Optional: GPU support for FAISS
 sentence-transformers>=2.2.0
 torch>=1.9.0
 numpy>=1.21.0

@@ -1,11 +1,14 @@
 """
 Agentic Workflow Orchestrator - Coordinates the multi-agent bio matching system.
+
+This module now supports both legacy orchestration and LangGraph-based workflows.
 """
 import asyncio
 import json
 import uuid
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+import logging
 
 from .models.agentic_models import (
     AgentTask, AgentResponse, WorkflowConfig, BioData
@@ -18,22 +21,99 @@ from .agents.compatibility_scorer import CompatibilityScorerAgent
 from .agents.summary_generator import SummaryGeneratorAgent
 from .utils.config_manager import AgenticConfigManager
 
+# Import LangGraph orchestrator if available
+try:
+    from .langgraph_orchestrator import LangGraphWorkflowOrchestrator
+    LANGGRAPH_AVAILABLE = True
+except ImportError:
+    LANGGRAPH_AVAILABLE = False
+
+# Import MCP client if available
+try:
+    from .mcp import MCPClient, get_default_mcp_servers
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP_AVAILABLE = False
+
+
+class WorkflowOrchestrationMode:
+    """Workflow orchestration modes."""
+    LEGACY = "legacy"
+    LANGGRAPH = "langgraph"
+    HYBRID = "hybrid"
+
 
 class AgenticWorkflowOrchestrator:
-    """Orchestrates the multi-agent workflow for bio matching."""
+    """Enhanced workflow orchestrator with LangGraph and MCP support."""
     
-    def __init__(self, config_path: str = None):
-        """Initialize the workflow orchestrator."""
+    def __init__(
+        self, 
+        config_path: str = None,
+        orchestration_mode: str = WorkflowOrchestrationMode.HYBRID,
+        enable_mcp: bool = True
+    ):
+        """
+        Initialize the workflow orchestrator.
+        
+        Args:
+            config_path: Path to configuration file
+            orchestration_mode: Orchestration mode (legacy, langgraph, hybrid)
+            enable_mcp: Whether to enable MCP integration
+        """
         self.config_manager = AgenticConfigManager(config_path)
         self.config = self.config_manager.get_config()
+        self.orchestration_mode = orchestration_mode
+        self.enable_mcp = enable_mcp and MCP_AVAILABLE
+        self.logger = logging.getLogger(__name__)
         
         # Initialize agents
         self.agents = self._initialize_agents()
+        
+        # Initialize LangGraph orchestrator if available and requested
+        self.langgraph_orchestrator = None
+        if LANGGRAPH_AVAILABLE and orchestration_mode in [WorkflowOrchestrationMode.LANGGRAPH, WorkflowOrchestrationMode.HYBRID]:
+            try:
+                self.langgraph_orchestrator = LangGraphWorkflowOrchestrator(config_path)
+                self.logger.info("LangGraph orchestrator initialized")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize LangGraph orchestrator: {e}")
+                if orchestration_mode == WorkflowOrchestrationMode.LANGGRAPH:
+                    self.orchestration_mode = WorkflowOrchestrationMode.LEGACY
+                    self.logger.info("Falling back to legacy orchestration mode")
+        
+        # Initialize MCP client if available and requested
+        self.mcp_client = None
+        if self.enable_mcp:
+            try:
+                self.mcp_client = MCPClient(get_default_mcp_servers())
+                self.logger.info("MCP client initialized")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize MCP client: {e}")
+                self.enable_mcp = False
         
         # Workflow state
         self.workflow_id = None
         self.workflow_state = {}
         self.execution_log = []
+        
+        self.logger.info(f"Workflow orchestrator initialized in {self.orchestration_mode} mode")
+    
+    async def initialize(self):
+        """Initialize the orchestrator and its components."""
+        try:
+            # Initialize LangGraph orchestrator if available
+            if self.langgraph_orchestrator:
+                await self.langgraph_orchestrator.initialize()
+            
+            # Initialize MCP client if available
+            if self.mcp_client:
+                await self.mcp_client.initialize()
+            
+            self.logger.info("Orchestrator initialization completed")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to initialize orchestrator: {e}")
+            raise
         
     def _initialize_agents(self) -> Dict[str, Any]:
         """Initialize all agents with configuration."""
@@ -72,9 +152,54 @@ class AgenticWorkflowOrchestrator:
         self, 
         user_query: str, 
         user_bio_data: Dict[str, Any],
+        workflow_config: Optional[WorkflowConfig] = None,
+        force_mode: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute the complete bio matching workflow.
+        
+        Args:
+            user_query: User's bio matching query
+            user_bio_data: User's bio data
+            workflow_config: Workflow configuration
+            force_mode: Force specific orchestration mode
+            
+        Returns:
+            Workflow execution results
+        """
+        # Determine orchestration mode
+        execution_mode = force_mode or self.orchestration_mode
+        
+        # Use LangGraph orchestrator if available and requested
+        if execution_mode == WorkflowOrchestrationMode.LANGGRAPH and self.langgraph_orchestrator:
+            self.logger.info("Executing workflow using LangGraph orchestrator")
+            return await self.langgraph_orchestrator.execute_workflow(
+                user_query, user_bio_data, workflow_config
+            )
+        
+        # Use hybrid mode (LangGraph with legacy fallback)
+        elif execution_mode == WorkflowOrchestrationMode.HYBRID and self.langgraph_orchestrator:
+            try:
+                self.logger.info("Attempting workflow execution using LangGraph orchestrator")
+                return await self.langgraph_orchestrator.execute_workflow(
+                    user_query, user_bio_data, workflow_config
+                )
+            except Exception as e:
+                self.logger.warning(f"LangGraph execution failed, falling back to legacy: {e}")
+                return await self._execute_legacy_workflow(user_query, user_bio_data, workflow_config)
+        
+        # Use legacy orchestrator
+        else:
+            self.logger.info("Executing workflow using legacy orchestrator")
+            return await self._execute_legacy_workflow(user_query, user_bio_data, workflow_config)
+    
+    async def _execute_legacy_workflow(
+        self, 
+        user_query: str, 
+        user_bio_data: Dict[str, Any],
         workflow_config: Optional[WorkflowConfig] = None
     ) -> Dict[str, Any]:
-        """Execute the complete bio matching workflow."""
+        """Execute the legacy workflow implementation."""
         
         # Initialize workflow
         self.workflow_id = str(uuid.uuid4())
@@ -415,43 +540,151 @@ class AgenticWorkflowOrchestrator:
         
         return completed_steps / total_steps
     
-    async def execute_simple_bio_matching(
-        self, 
-        user_bio_data: Dict[str, Any], 
-        max_matches: int = 10
-    ) -> Dict[str, Any]:
-        """Execute simplified bio matching without social media analysis."""
+    async def close(self):
+        """Close the orchestrator and its components."""
+        try:
+            # Close LangGraph orchestrator
+            if self.langgraph_orchestrator:
+                await self.langgraph_orchestrator.close()
+            
+            # Close MCP client
+            if self.mcp_client:
+                await self.mcp_client.close()
+            
+            self.logger.info("Orchestrator closed successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Error closing orchestrator: {e}")
+    
+    def get_available_modes(self) -> List[str]:
+        """Get available orchestration modes."""
+        modes = [WorkflowOrchestrationMode.LEGACY]
         
-        simple_query = f"Find matches for {user_bio_data.get('name', 'user')} based on bio compatibility"
+        if LANGGRAPH_AVAILABLE and self.langgraph_orchestrator:
+            modes.extend([
+                WorkflowOrchestrationMode.LANGGRAPH,
+                WorkflowOrchestrationMode.HYBRID
+            ])
         
-        # Create minimal workflow config
-        simple_config = WorkflowConfig(
-            enable_social_search=False,
-            enable_profile_analysis=False,
-            detailed_summaries=False,
-            max_final_results=max_matches
+        return modes
+    
+    def get_capabilities(self) -> Dict[str, Any]:
+        """Get orchestrator capabilities."""
+        return {
+            "orchestration_modes": self.get_available_modes(),
+            "mcp_enabled": self.enable_mcp,
+            "langgraph_available": LANGGRAPH_AVAILABLE,
+            "mcp_available": MCP_AVAILABLE,
+            "current_mode": self.orchestration_mode,
+            "agents": list(self.agents.keys())
+        }
+
+
+# Enhanced convenience functions
+async def run_bio_matching_workflow(
+    user_query: str,
+    user_bio_data: Dict[str, Any],
+    config_path: str = None,
+    enable_social_search: bool = True,
+    max_results: int = 10,
+    orchestration_mode: str = WorkflowOrchestrationMode.HYBRID,
+    enable_mcp: bool = True
+) -> Dict[str, Any]:
+    """
+    Enhanced convenience function to run the bio matching workflow.
+    
+    Args:
+        user_query: User's bio matching query
+        user_bio_data: User's bio data
+        config_path: Path to configuration file
+        enable_social_search: Whether to enable social media search
+        max_results: Maximum number of results to return
+        orchestration_mode: Orchestration mode to use
+        enable_mcp: Whether to enable MCP integration
+        
+    Returns:
+        Workflow execution results
+    """
+    orchestrator = AgenticWorkflowOrchestrator(
+        config_path=config_path,
+        orchestration_mode=orchestration_mode,
+        enable_mcp=enable_mcp
+    )
+    
+    try:
+        await orchestrator.initialize()
+        
+        workflow_config = WorkflowConfig(
+            enable_social_search=enable_social_search,
+            enable_profile_analysis=enable_social_search,
+            detailed_summaries=True,
+            max_final_results=max_results
         )
         
-        return await self.execute_workflow(simple_query, user_bio_data, simple_config)
+        result = await orchestrator.execute_workflow(user_query, user_bio_data, workflow_config)
+        return result
+        
+    finally:
+        await orchestrator.close()
 
 
-# Convenience function for easy workflow execution
-async def run_bio_matching_workflow(
+async def run_langgraph_workflow(
     user_query: str,
     user_bio_data: Dict[str, Any],
     config_path: str = None,
     enable_social_search: bool = True,
     max_results: int = 10
 ) -> Dict[str, Any]:
-    """Convenience function to run the bio matching workflow."""
+    """
+    Run workflow specifically using LangGraph orchestrator.
     
-    orchestrator = AgenticWorkflowOrchestrator(config_path)
-    
-    workflow_config = WorkflowConfig(
+    Args:
+        user_query: User's bio matching query
+        user_bio_data: User's bio data
+        config_path: Path to configuration file
+        enable_social_search: Whether to enable social media search
+        max_results: Maximum number of results to return
+        
+    Returns:
+        Workflow execution results
+    """
+    return await run_bio_matching_workflow(
+        user_query=user_query,
+        user_bio_data=user_bio_data,
+        config_path=config_path,
         enable_social_search=enable_social_search,
-        enable_profile_analysis=enable_social_search,
-        detailed_summaries=True,
-        max_final_results=max_results
+        max_results=max_results,
+        orchestration_mode=WorkflowOrchestrationMode.LANGGRAPH,
+        enable_mcp=True
     )
+
+
+async def run_legacy_workflow(
+    user_query: str,
+    user_bio_data: Dict[str, Any],
+    config_path: str = None,
+    enable_social_search: bool = True,
+    max_results: int = 10
+) -> Dict[str, Any]:
+    """
+    Run workflow specifically using legacy orchestrator.
     
-    return await orchestrator.execute_workflow(user_query, user_bio_data, workflow_config)
+    Args:
+        user_query: User's bio matching query
+        user_bio_data: User's bio data
+        config_path: Path to configuration file
+        enable_social_search: Whether to enable social media search
+        max_results: Maximum number of results to return
+        
+    Returns:
+        Workflow execution results
+    """
+    return await run_bio_matching_workflow(
+        user_query=user_query,
+        user_bio_data=user_bio_data,
+        config_path=config_path,
+        enable_social_search=enable_social_search,
+        max_results=max_results,
+        orchestration_mode=WorkflowOrchestrationMode.LEGACY,
+        enable_mcp=False
+    )
