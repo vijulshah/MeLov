@@ -1,0 +1,76 @@
+# Pre-commit configuration for Python AWS Lambda/SAM project
+# This file defines hooks to ensure code quality, security, and best practices before committing.
+repos:
+# Black: Formats Python code to a consistent style
+- repo: https://github.com/psf/black
+  rev: 24.4.2
+  hooks:
+    - id: black
+      language_version: python3
+      args: ["--line-length=120"]  # Set max line length to 120
+
+# isort: Sorts Python imports automatically
+- repo: https://github.com/pycqa/isort
+  rev: 5.13.2
+  hooks:
+    - id: isort
+      language_version: python3
+      args: ["--profile=black"]  # Automatically sort imports using Black profile
+
+
+# General pre-commit hooks for whitespace, file endings, YAML/JSON validation, and large file checks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.0.1
+  hooks:
+    - id: trailing-whitespace         # Remove trailing whitespace
+    - id: end-of-file-fixer           # Ensure file ends with a newline
+    - id: check-yaml                  # Validate YAML files
+      exclude: (template_fn|pre_deploy_template)\.yml$
+    - id: check-json                  # Validate JSON files
+    - id: check-added-large-files     # Prevent large files from being committed
+    - id: check-merge-conflict        # Detect merge conflict markers
+    - id: check-ast                   # Check Python files for AST errors
+    - id: check-toml                  # Validate TOML files
+    - id: detect-aws-credentials      # Detect AWS credentials in files
+      args: ['--allow-missing-credentials']
+    - id: pretty-format-json          # Format JSON files to a consistent style
+      args: ['--autofix', '--indent 4', '--no-sort-keys']             # Automatically fix formatting issues
+    - id: mixed-line-ending           # Replaces or checks mixed line endings
+
+
+# seed-isort-config: Sorts your third-party imports and integrates them into isort
+- repo: https://github.com/asottile/seed-isort-config
+  rev: v2.2.0
+  hooks:
+    - id: seed-isort-config
+
+# cfn-lint: AWS CloudFormation linter
+- repo: https://github.com/aws-cloudformation/cfn-lint
+  rev: v0.85.1
+  hooks:
+    - id: cfn-lint
+      name: cfn-lint (CloudFormation linter)
+      entry: cfn-lint
+      language: python
+      files: (?i)\.(yml|yaml|json)$/
+      exclude: template_fn\.yml$
+
+# Bandit: Security linter for Python code
+# - repo: https://github.com/PyCQA/bandit
+#   rev: 1.7.8
+#   hooks:
+#     - id: bandit
+#       name: bandit (security linter)
+#       entry: bandit -r lambdas/ lambda_layer/
+#       language: python
+#       types: [python]
+
+# autoflake: Removes unused imports and variables from Python code.
+- repo: https://github.com/PyCQA/autoflake
+  rev: v2.3.1
+  hooks:
+    - id: autoflake
+      name: autoflake (remove unused imports and variables)
+      entry: autoflake --in-place --remove-unused-variables --remove-all-unused-imports
+      language: python
+      types: [python]
