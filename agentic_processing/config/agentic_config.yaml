@@ -1,0 +1,234 @@
+# Agentic Bio Matching Configuration
+
+# LLM Models Configuration
+llm_models:
+  # Primary models for different tasks
+  primary:
+    model_name: "microsoft/Phi-3-mini-4k-instruct"
+    provider: "huggingface"
+    max_tokens: 4096
+    temperature: 0.7
+    
+  # Alternative models for different capabilities
+  alternatives:
+    - name: "meta-llama/Llama-3.2-1B-Instruct"
+      provider: "huggingface"
+      max_tokens: 4096
+      temperature: 0.7
+      use_case: "reasoning"
+      
+    - name: "mistralai/Mistral-7B-Instruct-v0.3"
+      provider: "huggingface"
+      max_tokens: 8192
+      temperature: 0.6
+      use_case: "analysis"
+      
+    - name: "tiiuae/falcon-7b-instruct"
+      provider: "huggingface"
+      max_tokens: 2048
+      temperature: 0.8
+      use_case: "creative"
+
+# Agent Configuration
+agents:
+  query_processor:
+    name: "QueryProcessorAgent"
+    model: "microsoft/Phi-3-mini-4k-instruct"
+    role: "Process user queries and extract matching requirements"
+    capabilities:
+      - "query_understanding"
+      - "requirement_extraction"
+      - "context_analysis"
+    
+  bio_matcher:
+    name: "BioMatcherAgent"
+    model: "meta-llama/Llama-3.2-1B-Instruct"
+    role: "Find and rank bio data matches from vector store"
+    capabilities:
+      - "vector_search"
+      - "similarity_analysis"
+      - "initial_filtering"
+    
+  social_finder:
+    name: "SocialFinderAgent"
+    model: "mistralai/Mistral-7B-Instruct-v0.3"
+    role: "Find social media profiles for matched bio data"
+    capabilities:
+      - "linkedin_search"
+      - "facebook_search"
+      - "instagram_search"
+      - "profile_validation"
+    
+  profile_analyzer:
+    name: "ProfileAnalyzerAgent"
+    model: "microsoft/Phi-3-mini-4k-instruct"
+    role: "Analyze social media profiles and extract relevant data"
+    capabilities:
+      - "linkedin_analysis"
+      - "post_analysis"
+      - "work_experience_extraction"
+      - "education_analysis"
+    
+  compatibility_scorer:
+    name: "CompatibilityScorerAgent"
+    model: "meta-llama/Llama-3.2-1B-Instruct"
+    role: "Score compatibility between user and potential matches"
+    capabilities:
+      - "compatibility_scoring"
+      - "reason_generation"
+      - "match_explanation"
+    
+  summary_generator:
+    name: "SummaryGeneratorAgent"
+    model: "tiiuae/falcon-7b-instruct"
+    role: "Generate comprehensive summaries and recommendations"
+    capabilities:
+      - "profile_summarization"
+      - "recommendation_generation"
+      - "final_ranking"
+
+# Multi-Agent Workflow Configuration
+workflow:
+  max_concurrent_agents: 3
+  timeout_seconds: 300
+  retry_attempts: 2
+  
+  stages:
+    - name: "query_processing"
+      agents: ["query_processor"]
+      dependencies: []
+      
+    - name: "bio_matching"
+      agents: ["bio_matcher"]
+      dependencies: ["query_processing"]
+      
+    - name: "social_discovery"
+      agents: ["social_finder"]
+      dependencies: ["bio_matching"]
+      parallel: true
+      
+    - name: "profile_analysis"
+      agents: ["profile_analyzer"]
+      dependencies: ["social_discovery"]
+      parallel: true
+      
+    - name: "compatibility_scoring"
+      agents: ["compatibility_scorer"]
+      dependencies: ["profile_analysis"]
+      
+    - name: "summary_generation"
+      agents: ["summary_generator"]
+      dependencies: ["compatibility_scoring"]
+
+# Social Media API Configuration
+social_apis:
+  linkedin:
+    enabled: true
+    rate_limit: 100  # requests per hour
+    search_fields:
+      - "headline"
+      - "summary"
+      - "experience"
+      - "education"
+      - "skills"
+      - "certifications"
+    
+  facebook:
+    enabled: false  # Requires special permissions
+    rate_limit: 200
+    
+  instagram:
+    enabled: true
+    rate_limit: 200
+    search_fields:
+      - "bio"
+      - "posts"
+      - "hashtags"
+
+# Scoring Configuration
+scoring:
+  weights:
+    bio_similarity: 0.3
+    professional_match: 0.25
+    interests_alignment: 0.2
+    education_compatibility: 0.15
+    social_activity: 0.1
+    
+  thresholds:
+    minimum_score: 0.6
+    good_match: 0.75
+    excellent_match: 0.85
+    
+  factors:
+    age_difference:
+      weight: 0.1
+      max_acceptable: 10
+    location_distance:
+      weight: 0.15
+      max_acceptable_km: 100
+    education_level:
+      weight: 0.1
+    career_stage:
+      weight: 0.15
+
+# Chat Interface Configuration
+chat:
+  max_history: 50
+  response_format: "markdown"
+  include_reasoning: true
+  show_confidence_scores: true
+  
+  prompts:
+    welcome: "Hi! I'm your bio matching assistant. Tell me what kind of person you're looking for, and I'll find the best matches from our database."
+    clarification: "Could you provide more details about your preferences?"
+    no_matches: "I couldn't find any matches with your criteria. Would you like to broaden your search?"
+    
+# Performance Configuration
+performance:
+  cache_enabled: true
+  cache_ttl_hours: 24
+  concurrent_requests: 5
+  batch_size: 10
+  
+  optimization:
+    enable_model_caching: true
+    use_response_streaming: true
+    compress_responses: true
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file: "logs/agentic_matching.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  agent_logs:
+    enabled: true
+    include_reasoning: true
+    include_timing: true
+    
+  performance_logs:
+    enabled: true
+    track_latency: true
+    track_token_usage: true
+
+# Security and Privacy
+security:
+  data_anonymization: true
+  pii_filtering: true
+  consent_required: true
+  data_retention_days: 90
+  
+  rate_limiting:
+    requests_per_minute: 60
+    requests_per_hour: 1000
+    
+# Development and Testing
+development:
+  mock_social_apis: false
+  use_sample_data: false
+  debug_mode: false
+  
+  test_queries:
+    - "Looking for software engineers interested in hiking"
+    - "Find creative professionals who love photography"
+    - "Someone with MBA and startup experience"

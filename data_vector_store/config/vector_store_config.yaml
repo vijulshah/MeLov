@@ -1,0 +1,133 @@
+# Vector Store Configuration for Bio Data Matching
+
+vector_store:
+  # FAISS configuration
+  faiss:
+    index_type: "IndexFlatIP"  # Inner Product for cosine similarity
+    # Alternative: "IndexFlatL2" for L2 distance, "IndexIVFFlat" for large datasets
+    dimension: 384  # Dimension based on sentence-transformer model
+    normalize_vectors: true  # Normalize vectors for cosine similarity
+    
+  # Index storage paths
+  storage:
+    base_path: "data_vector_store/indices"
+    my_biodata_index: "my_biodata.faiss"
+    ppl_biodata_index: "ppl_biodata.faiss"
+    metadata_extension: ".json"
+    
+  # Embedding configuration
+  embeddings:
+    model_name: "all-MiniLM-L6-v2"  # Lightweight sentence transformer
+    # Alternative models:
+    # - "all-mpnet-base-v2" (better quality, larger size)
+    # - "all-distilroberta-v1" (good balance)
+    # - "paraphrase-MiniLM-L6-v2" (paraphrase focused)
+    
+    max_sequence_length: 512
+    batch_size: 32
+    device: "cpu"  # Use "cuda" if GPU available
+    
+  # Text processing for embeddings
+  text_processing:
+    chunk_size: 500  # Characters per chunk for long texts
+    chunk_overlap: 50  # Overlap between chunks
+    include_metadata_in_text: true
+    
+    # Fields to include in embedding text
+    embedding_fields:
+      personal_info:
+        - name
+        - location
+        - nationality
+      education:
+        - degree
+        - institution
+        - major
+        - certifications
+      professional:
+        - current_job
+        - company
+        - skills
+        - industry
+      interests:
+        - hobbies
+        - sports
+        - music
+        - travel
+        - books
+        - movies
+      lifestyle:
+        - diet_preferences
+        - exercise_habits
+        - pets
+      relationship:
+        - relationship_status
+        - looking_for
+        - preferences
+
+# Similarity search configuration
+search:
+  # Default search parameters
+  default_k: 10  # Number of results to return
+  similarity_threshold: 0.7  # Minimum similarity score (0-1)
+  
+  # Search weights for different bio data sections
+  section_weights:
+    personal_info: 0.2
+    education: 0.15
+    professional: 0.25
+    interests: 0.25
+    lifestyle: 0.1
+    relationship: 0.05
+    
+  # Advanced search options
+  enable_reranking: true
+  rerank_top_k: 50  # Retrieve more, then rerank top results
+
+# Performance and optimization
+performance:
+  # Memory management
+  max_memory_usage_gb: 4
+  enable_memory_mapping: true
+  
+  # Parallel processing
+  n_jobs: -1  # Use all available cores
+  enable_multiprocessing: false  # Set to true for large datasets
+  
+  # Caching
+  enable_embedding_cache: true
+  cache_size_mb: 500
+
+# Logging configuration
+logging:
+  level: "INFO"
+  file: "logs/vector_store.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  enable_performance_logging: true
+
+# Data validation and quality
+validation:
+  # Minimum required fields for indexing
+  required_fields:
+    - personal_info.name
+    
+  # Quality checks
+  min_text_length: 50  # Minimum characters in processed text
+  max_text_length: 10000  # Maximum characters to prevent memory issues
+  validate_embeddings: true
+  
+  # Duplicate detection
+  enable_duplicate_detection: true
+  duplicate_threshold: 0.95  # Similarity threshold for duplicates
+
+# Backup and maintenance
+maintenance:
+  # Automatic backups
+  enable_auto_backup: true
+  backup_interval_hours: 24
+  max_backups: 7
+  backup_path: "data_vector_store/backups"
+  
+  # Index optimization
+  auto_optimize_threshold: 1000  # Optimize after N additions
+  enable_index_compression: false

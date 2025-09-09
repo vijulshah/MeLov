@@ -1,0 +1,74 @@
+# Bio Data Extraction Configuration
+pdf_processing:
+  # Input paths for different bio data types
+  my_biodata:
+    input_path: "data/my_biodata"
+    output_path: "data/processed/my_biodata"
+  ppl_biodata:
+    input_path: "data/ppl_biodata"
+    output_path: "data/processed/ppl_biodata"
+  supported_formats: ["pdf"]
+  
+extraction:
+  # Docling extraction settings
+  extract_images: false
+  extract_tables: true
+  preserve_formatting: true
+  
+bio_data_fields:
+  personal_info:
+    - name
+    - age
+    - date_of_birth
+    - gender
+    - location
+    - nationality
+    - contact_info
+  
+  education:
+    - degree
+    - institution
+    - graduation_year
+    - gpa
+    - major
+    - certifications
+  
+  professional:
+    - current_job
+    - company
+    - experience_years
+    - skills
+    - industry
+    - salary_range
+  
+  interests:
+    - hobbies
+    - sports
+    - music
+    - travel
+    - books
+    - movies
+  
+  lifestyle:
+    - diet_preferences
+    - exercise_habits
+    - smoking
+    - drinking
+    - pets
+  
+  relationship:
+    - relationship_status
+    - looking_for
+    - preferences
+    - deal_breakers
+
+output:
+  format: "json"
+  include_metadata: true
+  structured_output: true
+  validate_schema: true
+
+logging:
+  level: "INFO"
+  file: "logs/bio_extraction.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
