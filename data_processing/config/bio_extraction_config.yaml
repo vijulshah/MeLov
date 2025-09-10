@@ -1,20 +1,47 @@
 # Bio Data Extraction Configuration
-pdf_processing:
+batch_processing: false
+batch_size: 10
+
+processing_bio_types: ["my_biodata"]
+
+file_processing:
   # Input paths for different bio data types
   my_biodata:
-    input_path: "data/my_biodata"
+    input_path: "data/raw/my_biodata"
     output_path: "data/processed/my_biodata"
+    images_output_path: "data/processed/my_biodata"
   ppl_biodata:
-    input_path: "data/ppl_biodata"
-    output_path: "data/processed/ppl_biodata"
-  supported_formats: ["pdf"]
-  
+    input_path: "data/raw/ppl_biodata/rahi_matrimony"
+    output_path: "data/processed/ppl_biodata/rahi_matrimony"
+    images_output_path: "data/processed/ppl_biodata/rahi_matrimony"
+  supported_formats: ["pdf", "jpg", "jpeg", "png", "bmp", "tiff", "gif", "docx", "doc"]
+
 extraction:
   # Docling extraction settings
-  extract_images: false
+  extract_images: true
   extract_tables: true
   preserve_formatting: true
-  
+  # Image processing settings
+  save_extracted_images: true
+  image_formats: ["png", "jpg", "jpeg"]
+  max_image_size_mb: 10
+
+# Hugging Face models for image processing
+image_processing:
+  person_detection:
+    model: "facebook/detr-resnet-50"
+    confidence_threshold: 0.7
+    device: "auto"  # auto, cpu, cuda
+
+  image_description:
+    model: "Salesforce/blip-image-captioning-large"
+    max_length: 150
+    device: "auto"  # auto, cpu, cuda
+
+  # Cache settings
+  cache_dir: "local/hf_cache"
+  use_cache: true
+
 bio_data_fields:
   personal_info:
     - name
@@ -24,7 +51,7 @@ bio_data_fields:
     - location
     - nationality
     - contact_info
-  
+
   education:
     - degree
     - institution
@@ -32,7 +59,7 @@ bio_data_fields:
     - gpa
     - major
     - certifications
-  
+
   professional:
     - current_job
     - company
@@ -40,7 +67,7 @@ bio_data_fields:
     - skills
     - industry
     - salary_range
-  
+
   interests:
     - hobbies
     - sports
@@ -48,14 +75,14 @@ bio_data_fields:
     - travel
     - books
     - movies
-  
+
   lifestyle:
     - diet_preferences
     - exercise_habits
     - smoking
     - drinking
     - pets
-  
+
   relationship:
     - relationship_status
     - looking_for

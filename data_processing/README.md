@@ -1,17 +1,24 @@
 # Bio-Data Extraction Application
 
-This application extracts bio-data from PDF files using docling and structures it into JSON format with proper validation using Pydantic models. It supports processing both your own bio-data and other people's bio-data, saving them in separate locations for matching purposes.
+This application extracts bio-data from multiple file formats (PDF, images, DOCX) using docling and structures it into JSON format with proper validation using Pydantic models. It includes advanced image processing capabilities using Hugging Face models for person detection and image description.
 
 ## Features
 
-- 🔍 **PDF Extraction**: Uses docling for high-quality PDF text and table extraction
+- 🔍 **Multi-Format Support**: Extracts from PDF, images (JPG, PNG, etc.), and DOCX files
+- 🖼️ **Image Processing**: Extracts images from PDFs and processes standalone images
+- 🤖 **AI-Powered Analysis**: Uses Hugging Face models for person detection and image description
 - 📊 **Structured Data**: Converts extracted text into structured JSON format
 - ✅ **Data Validation**: Uses Pydantic models for robust data validation
 - ⚙️ **Configurable**: YAML-based configuration for easy customization
 - 📝 **Logging**: Comprehensive logging for debugging and monitoring
 - 🎯 **Flexible Parsing**: Supports various bio-data formats and layouts
 - 👤 **Dual Processing**: Separate handling for your bio-data vs. other people's bio-data
-- 📦 **Batch Processing**: Process multiple PDFs in a directory at once
+- 📦 **Batch Processing**: Process multiple files in a directory at once
+
+## Supported File Formats
+
+- **Documents**: PDF, DOCX, DOC
+- **Images**: JPG, JPEG, PNG, BMP, TIFF, GIF
 
 ## Installation
 
@@ -22,7 +29,10 @@ pip install -r requirements.txt
 
 2. Create the necessary directories:
 ```bash
-mkdir -p data/my_biodata data/ppl_biodata data/processed/my_biodata data/processed/ppl_biodata logs
+mkdir -p data/raw/my_biodata data/raw/ppl_biodata
+mkdir -p data/processed/my_biodata data/processed/ppl_biodata
+mkdir -p data/processed/my_biodata/images data/processed/ppl_biodata/images
+mkdir -p logs local/hf_cache
 ```
 
 ## Configuration
@@ -30,6 +40,8 @@ mkdir -p data/my_biodata data/ppl_biodata data/processed/my_biodata data/process
 The application uses a YAML configuration file located at `data_processing/config/bio_extraction_config.yaml`. You can customize:
 
 - Input/output paths for both bio-data types
+- Image processing settings
+- Hugging Face model configurations
 - Bio-data fields to extract
 - Extraction settings
 - Logging configuration
@@ -37,41 +49,81 @@ The application uses a YAML configuration file located at `data_processing/confi
 ### Configuration Structure
 
 ```yaml
-pdf_processing:
+file_processing:
   my_biodata:
-    input_path: "data/my_biodata"
+    input_path: "data/raw/my_biodata"
     output_path: "data/processed/my_biodata"
+    images_output_path: "data/processed/my_biodata/images"
   ppl_biodata:
-    input_path: "data/ppl_biodata"
+    input_path: "data/raw/ppl_biodata"
     output_path: "data/processed/ppl_biodata"
+    images_output_path: "data/processed/ppl_biodata/images"
+  supported_formats: ["pdf", "jpg", "jpeg", "png", "bmp", "tiff", "gif", "docx", "doc"]
+
+image_processing:
+  person_detection:
+    model: "facebook/detr-resnet-50"
+    confidence_threshold: 0.7
+    device: "auto"
+  image_description:
+    model: "Salesforce/blip-image-captioning-large"
+    max_length: 150
+    device: "auto"
 ```
 
 ## Usage
 
-### Command Line
+### Command Line Interface
 
 #### Process Your Bio-Data
 ```bash
+# PDF file
 python -m data_processing.extraction.main path/to/your/resume.pdf --bio-type my_biodata
+
+# Image file
+python -m data_processing.extraction.main path/to/your/photo.jpg --bio-type my_biodata
+
+# DOCX file
+python -m data_processing.extraction.main path/to/your/resume.docx --bio-type my_biodata
 ```
 
 #### Process Other People's Bio-Data
 ```bash
-python -m data_processing.extraction.main path/to/other/resume.pdf --bio-type ppl_biodata
+python -m data_processing.extraction.main path/to/other/file.pdf --bio-type ppl_biodata
 ```
 
 #### Batch Processing
 ```bash
-# Process all PDFs in my_biodata directory
+# Process all supported files in my_biodata directory
 python -m data_processing.extraction.main --batch --bio-type my_biodata
 
-# Process all PDFs in ppl_biodata directory
+# Process all supported files in ppl_biodata directory
 python -m data_processing.extraction.main --batch --bio-type ppl_biodata
 ```
 
-#### With Custom Configuration
+#### Show Supported Formats
 ```bash
-python -m data_processing.extraction.main path/to/resume.pdf --bio-type my_biodata --config custom_config.yaml
+python -m data_processing.extraction.main --supported-formats
+```
+
+### Simple CLI Utility
+
+Use the convenient CLI for common operations:
+
+```bash
+# Extract from any supported file
+python bio_cli.py extract-my path/to/your/file.pdf
+python bio_cli.py extract-people path/to/other/file.jpg
+
+# Batch processing
+python bio_cli.py batch-my
+python bio_cli.py batch-people
+
+# System status
+python bio_cli.py status
+
+# Show supported formats
+python bio_cli.py formats
 ```
 
 ### Programmatic Usage
@@ -84,11 +136,12 @@ from data_processing.utils.config_manager import ConfigManager
 config = ConfigManager()
 extractor = BioDataExtractor(config)
 
-# Process your bio-data
-result = extractor.process_my_biodata("path/to/your/resume.pdf")
+# Process any supported file
+result = extractor.process_file("path/to/file.pdf", "my_biodata")
 
-# Process other people's bio-data
-result = extractor.process_people_biodata("path/to/other/resume.pdf")
+# Process with specific methods
+result = extractor.process_my_biodata("path/to/your/file.jpg")
+result = extractor.process_people_biodata("path/to/other/file.docx")
 
 # Batch processing
 my_results = extractor.batch_process_directory("my_biodata")
@@ -96,23 +149,21 @@ people_results = extractor.batch_process_directory("ppl_biodata")
 
 if result.success:
     print(f"Extracted data for: {result.bio_data.personal_info.name}")
-    # Access structured data
-    bio_data = result.bio_data
-```
 
-### Convenience Functions
+    # Access extracted images
+    if result.extracted_images:
+        print(f"Found {len(result.extracted_images)} images")
+        for img in result.extracted_images:
+            if img.contains_person:
+                print(f"  - {img.file_path}: {img.description}")
 
-```python
-from data_processing.extraction.main import process_my_biodata, process_people_biodata
-
-# Simple processing functions
-success = process_my_biodata("path/to/your/resume.pdf")
-success = process_people_biodata("path/to/other/resume.pdf")
+# Clean up resources
+extractor.cleanup()
 ```
 
 ## Data Structure
 
-The extracted bio-data follows this structure and includes metadata about the processing type:
+The extracted bio-data includes comprehensive information about images and processing:
 
 ```json
 {
@@ -149,104 +200,133 @@ The extracted bio-data follows this structure and includes metadata about the pr
     "relationship_status": "single",
     "looking_for": ["long-term relationship"]
   },
+  "images": [
+    {
+      "file_path": "data/processed/my_biodata/images/john_doe/profile_img_0.png",
+      "original_filename": "john_doe_resume.pdf",
+      "extracted_from_pdf": true,
+      "page_number": 1,
+      "contains_person": true,
+      "person_confidence": 0.95,
+      "description": "A professional portrait of a young man in business attire smiling at the camera",
+      "description_model": "Salesforce/blip-image-captioning-large",
+      "width": 300,
+      "height": 400,
+      "file_size_bytes": 45231
+    }
+  ],
   "metadata": {
-    "source_file": "path/to/resume.pdf",
+    "source_file": "path/to/file.pdf",
     "bio_data_type": "my_biodata",
+    "file_type": "pdf",
     "extraction_timestamp": "2025-09-09T12:00:00",
-    "processing_time_seconds": 2.5,
-    "extraction_method": "docling"
+    "processing_time_seconds": 5.2,
+    "extraction_method": "docling",
+    "images_extracted": 1,
+    "images_with_persons": 1
   }
 }
 ```
 
-## Directory Structure
+## Image Processing Features
 
-The application organizes data into separate directories for different purposes:
+### Person Detection
+- Uses Facebook's DETR model for object detection
+- Identifies images containing people
+- Provides confidence scores for detections
+- Configurable confidence thresholds
+
+### Image Description
+- Uses Salesforce's BLIP model for image captioning
+- Generates natural language descriptions
+- Only processes images with detected persons (for efficiency)
+- Configurable description length
+
+### Image Extraction from PDFs
+- Automatically extracts images embedded in PDF documents
+- Saves images in organized directory structure
+- Tracks page numbers and source information
+- Supports multiple image formats
+
+### Standalone Image Processing
+- Processes standalone image files directly
+- Copies images to organized storage structure
+- Applies same AI analysis as extracted images
+
+## Directory Structure
 
 ```
 MeLov/
 ├── data/
-│   ├── my_biodata/           # Your bio-data PDF files
-│   ├── ppl_biodata/          # Other people's bio-data PDF files
+│   ├── raw/
+│   │   ├── my_biodata/           # Your bio-data files (any format)
+│   │   └── ppl_biodata/          # Other people's bio-data files
 │   └── processed/
-│       ├── my_biodata/       # Processed JSON files from your bio-data
-│       └── ppl_biodata/      # Processed JSON files from other people's bio-data
+│       ├── my_biodata/           # Processed JSON files from your bio-data
+│       │   └── images/           # Extracted/processed images
+│       └── ppl_biodata/          # Processed JSON files from other people
+│           └── images/           # Extracted/processed images
+├── local/
+│   └── hf_cache/                 # Hugging Face model cache
 ├── data_processing/
 │   ├── config/
 │   │   └── bio_extraction_config.yaml
 │   ├── extraction/
-│   │   ├── bio_extractor.py  # Main extraction logic
-│   │   └── main.py           # CLI interface
+│   │   ├── bio_extractor.py      # Main extraction logic
+│   │   └── main.py               # CLI interface
 │   ├── models/
-│   │   └── bio_models.py     # Pydantic models
+│   │   └── bio_models.py         # Pydantic models with image support
 │   └── utils/
-│       └── config_manager.py # Configuration management
-├── logs/                     # Log files
-├── requirements.txt          # Dependencies
-└── README.md                # This file
+│       ├── config_manager.py     # Configuration management
+│       └── image_processor.py    # AI-powered image processing
+├── logs/                         # Log files
+├── bio_cli.py                    # Simple CLI utility
+├── requirements.txt              # Dependencies (updated for AI models)
+└── README.md                     # This file
 ```
 
-## Supported Bio-Data Fields
+## AI Model Requirements
 
-- **Personal Information**: Name, age, gender, location, contact details
-- **Education**: Degree, institution, graduation year, GPA, certifications
-- **Professional**: Job title, company, experience, skills, industry
-- **Interests**: Hobbies, sports, music, travel preferences
-- **Lifestyle**: Diet, exercise, smoking/drinking habits, pets
-- **Relationship**: Status, preferences, looking for
-- **Metadata**: Processing information including bio-data type classification
+### System Requirements
+- **GPU Support**: CUDA, MPS, or CPU
+- **Memory**: Minimum 4GB RAM (8GB+ recommended)
+- **Storage**: ~2GB for model cache
+
+### Models Used
+- **Person Detection**: facebook/detr-resnet-50
+- **Image Captioning**: Salesforce/blip-image-captioning-large
+
+Models are automatically downloaded on first use and cached locally.
 
 ## Best Practices
 
-1. **PDF Quality**: Ensure PDFs are text-based or high-quality scanned documents
-2. **Consistent Format**: Use consistent formatting in bio-data PDFs for better extraction
-3. **Configuration**: Customize the YAML config for your specific use case
-4. **Validation**: Review extracted data and provide feedback for improvements
-5. **Privacy**: Ensure sensitive data is handled according to privacy requirements
-6. **Organization**: Keep your bio-data and other people's bio-data in separate directories
-7. **Batch Processing**: Use batch processing for efficient handling of multiple files
-
-## Bio-Data Matching Workflow
-
-This extraction system is designed to support a bio-data matching application:
-
-1. **Your Bio-Data**: Process your own bio-data and save to `data/processed/my_biodata/`
-2. **Other People's Bio-Data**: Process potential matches and save to `data/processed/ppl_biodata/`
-3. **Matching**: Use the structured JSON files for similarity analysis and matching algorithms
-4. **Privacy**: Separate storage ensures proper data handling and privacy controls
-
-## Extending the Application
-
-### Adding New Fields
-
-1. Update the Pydantic models in `data_processing/models/bio_models.py`
-2. Add extraction logic in `data_processing/extraction/bio_extractor.py`
-3. Update the configuration file to include new fields
-
-### Custom Parsers
-
-You can create custom parsers for specific PDF formats by extending the `BioDataExtractor` class.
-
-### Adding New Bio-Data Types
-
-To add support for additional bio-data categories:
-
-1. Add new enum values to `BioDataType` in `bio_models.py`
-2. Update the configuration file with new paths
-3. Extend the `ConfigManager` methods to handle new types
+1. **File Quality**: Ensure high-quality files for better extraction
+2. **GPU Usage**: Use GPU for faster image processing when available
+3. **Batch Processing**: Use batch mode for processing multiple files
+4. **Model Cache**: Keep model cache to avoid re-downloading
+5. **Image Organization**: Images are automatically organized by source
+6. **Privacy**: Separate storage for different bio-data types
+7. **Resource Management**: Call `cleanup()` after processing
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Import Errors**: Make sure docling is installed: `pip install docling`
-2. **PDF Not Found**: Check the file path and ensure the PDF exists
-3. **Extraction Failures**: Check the logs for detailed error messages
-4. **Poor Quality**: Try with higher-quality PDF files
+1. **Model Download Failures**: Check internet connection and disk space
+2. **GPU Memory Issues**: Reduce batch size or use CPU
+3. **Image Processing Errors**: Ensure PIL/Pillow supports your image format
+4. **Slow Processing**: Use GPU acceleration when available
 
-### Logs
+### Performance Tips
 
-Check the log files in the `logs/` directory for detailed information about the extraction process.
+- Use GPU for faster image processing
+- Process images in batches for efficiency
+- Cache models locally to avoid re-downloading
+- Use appropriate confidence thresholds
+
+## License
+
+This project is part of the MeLov bio-data matching application.
 
 ## Contributing
 
@@ -254,7 +334,4 @@ Check the log files in the `logs/` directory for detailed information about the 
 2. Add tests for new functionality
 3. Update documentation
 4. Use type hints for all functions
-
-## License
-
-This project is part of the MeLov bio-data matching application.
+5. Consider privacy implications for image processing

@@ -1,3 +1,4 @@
 /data/*
 /local/*
 /logs/*
+__pycache__/
