@@ -93,23 +93,23 @@ class ConfigManager:
 
     def get_image_processing_config(self) -> Dict[str, Any]:
         """Get image processing configuration."""
-        return self._config.image_processing
+        return self._config.image_processing.model_dump()
 
     def get_bio_fields(self) -> Dict[str, list]:
         """Get bio data fields configuration."""
-        return self._config.bio_data_fields
+        return self._config.bio_data_fields.model_dump()
 
     def get_extraction_settings(self) -> Dict[str, Any]:
         """Get extraction settings."""
-        return self._config.extraction
+        return self._config.extraction.model_dump()
 
     def get_output_settings(self) -> Dict[str, Any]:
         """Get output settings."""
-        return self._config.output
+        return self._config.output.model_dump()
 
     def get_logging_config(self) -> Dict[str, Any]:
         """Get logging configuration."""
-        return self._config.logging
+        return self._config.logging.model_dump()
 
     def update_config(self, key: str, value: Any) -> None:
         """

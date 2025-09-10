@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any, List, Literal, Optional
 
 try:
-    from docling.datamodel.base_models import InputFormat
     from docling.datamodel.pipeline_options import PdfPipelineOptions
     from docling.document_converter import DocumentConverter
 except ImportError:
@@ -81,10 +80,10 @@ class BioDataExtractor:
         log_config = self.config.get_logging_config()
 
         logger = logging.getLogger(__name__)
-        logger.setLevel(getattr(logging, log_config.level))
+        logger.setLevel(getattr(logging, log_config.get("level", "INFO")))
 
         # Create formatter
-        formatter = logging.Formatter(log_config.format)
+        formatter = logging.Formatter(log_config.get("format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
 
         # Console handler
         console_handler = logging.StreamHandler()
@@ -92,7 +91,7 @@ class BioDataExtractor:
         logger.addHandler(console_handler)
 
         # File handler if specified
-        log_file = log_config.file
+        log_file = log_config.get("file")
         if log_file:
             log_path = Path(log_file)
             log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -109,16 +108,22 @@ class BioDataExtractor:
         # Configure PDF pipeline options
         pipeline_options = PdfPipelineOptions()
         pipeline_options.do_ocr = True
-        pipeline_options.do_table_structure = extraction_settings.extract_tables
-        pipeline_options.generate_page_images = extraction_settings.extract_images
+
+        # Set table extraction if available
+        if hasattr(pipeline_options, "do_table_structure"):
+            pipeline_options.do_table_structure = extraction_settings.get("extract_tables", True)
+
+        # Set image extraction if available
+        if hasattr(pipeline_options, "generate_page_images"):
+            pipeline_options.generate_page_images = extraction_settings.get("extract_images", True)
 
         # Create converter with support for multiple formats
         converter = DocumentConverter(
-            format_options={
-                InputFormat.PDF: pipeline_options,
-                InputFormat.DOCX: {},  # Default options for DOCX
-                InputFormat.IMAGE: {},  # Default options for images
-            }
+            # format_options={
+            #     InputFormat.PDF: pipeline_options,
+            #     InputFormat.DOCX: {},  # Default options for DOCX
+            #     InputFormat.IMAGE: {},  # Default options for images
+            # }
         )
 
         return converter
