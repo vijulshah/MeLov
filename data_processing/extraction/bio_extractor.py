@@ -180,8 +180,25 @@ class BioDataExtractor:
 
                 for i, picture in enumerate(result.document.pictures):
                     try:
-                        # Save extracted image
-                        image_filename = f"{pdf_name}_page_{picture.page}_img_{i}.png"
+                        # Get page number - check different possible attributes
+                        page_number = None
+                        if hasattr(picture, "page"):
+                            page_number = picture.page
+                        elif hasattr(picture, "page_no"):
+                            page_number = picture.page_no
+                        elif hasattr(picture, "prov"):
+                            # Try to extract page from provenance if available
+                            for prov in picture.prov:
+                                if hasattr(prov, "page"):
+                                    page_number = prov.page
+                                    break
+
+                        # Create filename with fallback for page number
+                        if page_number is not None:
+                            image_filename = f"{pdf_name}_page_{page_number}_img_{i}.png"
+                        else:
+                            image_filename = f"{pdf_name}_img_{i}.png"
+
                         image_path = pdf_images_dir / image_filename
 
                         # Convert and save image
@@ -193,7 +210,7 @@ class BioDataExtractor:
                                 image_info = self.image_processor.process_image(
                                     str(image_path),
                                     extracted_from_pdf=True,
-                                    page_number=picture.page,
+                                    page_number=page_number,
                                     original_filename=pdf_path.name,
                                 )
                                 extracted_images.append(image_info)
@@ -203,7 +220,7 @@ class BioDataExtractor:
                                     file_path=str(image_path),
                                     original_filename=pdf_path.name,
                                     extracted_from_pdf=True,
-                                    page_number=picture.page,
+                                    page_number=page_number,
                                 )
                                 extracted_images.append(image_info)
 
@@ -398,15 +415,15 @@ class BioDataExtractor:
         email_pattern = r"([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})"
         phone_pattern = r"(?:phone|Phone|PHONE|mobile|Mobile)[:\s]*([\+\d\s\-\(\)]+)"
 
-        # Extract basic information
+        # Extract basic information with safe group access
         name_match = re.search(name_pattern, text)
         age_match = re.search(age_pattern, text)
         email_match = re.search(email_pattern, text)
         phone_match = re.search(phone_pattern, text)
 
-        # Build personal info
-        name = name_match.group(1).strip() if name_match else "Unknown"
-        age = int(age_match.group(1)) if age_match else None
+        # Build personal info with safe group access
+        name = name_match.group(1).strip() if name_match and len(name_match.groups()) >= 1 else "Unknown"
+        age = int(age_match.group(1)) if age_match and len(age_match.groups()) >= 1 else None
 
         contact_info = None
         if email_match or phone_match:
@@ -417,9 +434,12 @@ class BioDataExtractor:
                 # When run as script
                 from models.bio_models import ContactInfo
 
+            email = email_match.group(1) if email_match and len(email_match.groups()) >= 1 else None
+            phone = phone_match.group(1).strip() if phone_match and len(phone_match.groups()) >= 1 else None
+
             contact_info = ContactInfo(
-                email=email_match.group(1) if email_match else None,
-                phone=phone_match.group(1).strip() if phone_match else None,
+                email=email,
+                phone=phone,
             )
 
         return PersonalInfo(name=name, age=age, contact_info=contact_info)
@@ -444,19 +464,19 @@ class BioDataExtractor:
             r"([A-Za-z\s]+(?:University|College|Institute))",
         ]
 
-        # Extract education data
+        # Extract education data with safe group access
         degree = None
         institution = None
 
         for pattern in degree_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
-            if match:
+            if match and len(match.groups()) >= 1:
                 degree = match.group(1).strip()
                 break
 
         for pattern in institution_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
-            if match:
+            if match and len(match.groups()) >= 1:
                 institution = match.group(1).strip()
                 break
 
@@ -484,19 +504,19 @@ class BioDataExtractor:
             r"(?:at|@)\s+([A-Za-z\s]+(?:Inc|Corp|Ltd|LLC|Company))",
         ]
 
-        # Extract professional data
+        # Extract professional data with safe group access
         job = None
         company = None
 
         for pattern in job_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
-            if match:
+            if match and len(match.groups()) >= 1:
                 job = match.group(1).strip()
                 break
 
         for pattern in company_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
-            if match:
+            if match and len(match.groups()) >= 1:
                 company = match.group(1).strip()
                 break
 
@@ -527,7 +547,7 @@ class BioDataExtractor:
         for keyword in interest_keywords:
             pattern = rf"(?:{keyword})[:\s]+([A-Za-z\s,]+)"
             match = re.search(pattern, text, re.IGNORECASE)
-            if match:
+            if match and len(match.groups()) >= 1:
                 hobbies = [h.strip() for h in match.group(1).split(",")]
                 return Interests(hobbies=hobbies)
 
