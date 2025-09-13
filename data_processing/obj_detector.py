@@ -26,7 +26,7 @@ class DocumentProcessor:
 
     def __init__(
         self,
-        config_path: str = "./data_processing/configs/object_detection_config.yaml",
+        config_path: str = "./data_processing/configs/obj_detection_config.yaml",
     ):
         self.config = ConfigManager.load_config(config_path)
         self.model_manager = ModelManager(self.config)
