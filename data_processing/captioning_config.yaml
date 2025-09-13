@@ -1,0 +1,21 @@
+# Image Captioning Configuration
+
+# Image Captioning Settings
+captioning:
+  # Model configuration
+  model_name: "Salesforce/blip-image-captioning-base"  # BLIP model for image captioning
+  max_length: 50              # Maximum length of generated captions
+  num_beams: 5                # Number of beams for beam search
+  device: null                # auto-detect (cuda if available, else cpu)
+  batch_size: 4               # Batch size for captioning
+
+  # Processing behavior
+  overwrite_existing: false   # Whether to overwrite existing caption files
+
+# Path Configuration for Captioning
+paths:
+  processed_data_dir: "./data/processed"
+
+# Output Structure
+output_structure:
+  cropped_persons_dir: "cropped_persons"
