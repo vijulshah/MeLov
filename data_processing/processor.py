@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from typing import List
 
-import fitz
+import pymupdf
 from models import BatchProcessingResult, Detection, FileType, ProcessingResult
 from utils import (
     ConfigManager,
@@ -78,7 +78,7 @@ class DocumentProcessor:
 
         try:
             # Open PDF
-            pdf_document = fitz.open(pdf_path)
+            pdf_document = pymupdf.open(pdf_path)
 
             # Set up output directories
             base_output_dir = DirectoryManager.get_output_base_path(pdf_path, self.config)

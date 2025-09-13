@@ -16,6 +16,7 @@ Pillow>=9.0.0
 torch>=1.9.0
 torchvision>=0.10.0
 transformers>=4.25.0
+pymupdf>=1.22.0  # For PDF processing (provides fitz module)
 
 # Hugging Face models for image processing
 accelerate>=0.20.0  # For faster model loading
