@@ -25,6 +25,7 @@ accelerate>=0.20.0  # For faster model loading
 
 # Logging and utilities
 colorlog>=6.0.0
+tqdm>=4.64.0  # Progress bars
 
 # LangGraph and MCP dependencies
 langgraph>=0.0.60

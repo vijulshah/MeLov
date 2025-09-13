@@ -8,6 +8,7 @@ from data_models.img_captioning_data_models import (
     CaptioningBatchResult,
     CaptioningResult,
 )
+from tqdm import tqdm
 from utils.img_captioning_utils import (
     CaptioningConfigManager,
     CroppedImageDiscovery,
@@ -67,12 +68,24 @@ class ImageCaptioningProcessor:
 
         logging.info(f"Starting to process {total_images} images...")
 
-        # Process each image
-        for i, image_path in enumerate(image_paths, 1):
+        # Process each image with progress bar
+        progress_bar = tqdm(
+            image_paths,
+            desc="Processing images",
+            unit="img",
+            total=total_images,
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}] {desc}",
+        )
+
+        for image_path in progress_bar:
             try:
+                # Update progress bar description with current image name
+                progress_bar.set_description(f"Processing {image_path.name}")
+
                 # Check if we should process this image
                 if not self.captioner.should_process_image(image_path):
                     skipped_images += 1
+                    progress_bar.set_postfix({"Skipped": skipped_images, "Failed": failed_images})
                     logging.debug(f"Caption already exists for {image_path.name}, skipping")
                     continue
 
@@ -82,18 +95,34 @@ class ImageCaptioningProcessor:
 
                 if result.success:
                     processed_images += 1
-                    logging.info(f"[{i}/{total_images}] Processed: {image_path.name}")
+                    progress_bar.set_postfix(
+                        {
+                            "Processed": processed_images,
+                            "Skipped": skipped_images,
+                            "Failed": failed_images,
+                        }
+                    )
                     logging.debug(f"Generated caption: {result.caption}")
                 else:
                     failed_images += 1
-                    logging.error(f"[{i}/{total_images}] Failed: {image_path.name} - {result.error_message}")
-
-                # Progress update every 10 images
-                if i % 10 == 0:
-                    self._log_progress(i, total_images, start_time)
+                    progress_bar.set_postfix(
+                        {
+                            "Processed": processed_images,
+                            "Skipped": skipped_images,
+                            "Failed": failed_images,
+                        }
+                    )
+                    logging.error(f"Failed: {image_path.name} - {result.error_message}")
 
             except Exception as e:
                 failed_images += 1
+                progress_bar.set_postfix(
+                    {
+                        "Processed": processed_images,
+                        "Skipped": skipped_images,
+                        "Failed": failed_images,
+                    }
+                )
                 logging.error(f"Error processing {image_path}: {str(e)}")
 
                 # Create error result
@@ -104,6 +133,9 @@ class ImageCaptioningProcessor:
                     error_message=str(e),
                 )
                 results.append(error_result)
+
+        # Close the progress bar
+        progress_bar.close()
 
         total_processing_time = time.time() - start_time
 
@@ -129,16 +161,6 @@ class ImageCaptioningProcessor:
             failed_images=0,
             total_processing_time=0.0,
             results=[],
-        )
-
-    def _log_progress(self, current: int, total: int, start_time: float) -> None:
-        """Log processing progress."""
-        elapsed = time.time() - start_time
-        rate = current / elapsed if elapsed > 0 else 0
-        eta = (total - current) / rate if rate > 0 else 0
-
-        logging.info(
-            f"Progress: {current}/{total} ({current/total*100:.1f}%) - " f"Rate: {rate:.1f} img/s - ETA: {eta:.0f}s"
         )
 
     def _print_batch_summary(self, batch_result: CaptioningBatchResult) -> None:
