@@ -1,0 +1,38 @@
+# Document Processing Configuration
+
+# Object Detection Settings
+detection:
+  model_name: "facebook/detr-resnet-50"
+  confidence_threshold: 0.8
+  target_label: "person"
+  dpi_scale: 300
+  device: null  # auto-detect
+  dtype: "float16"
+  batch_size: 8  # Batch size for GPU processing
+
+# Visualization Settings
+visualization:
+  bounding_box_color: "red"
+  bounding_box_width: 2
+  font_name: "arial.ttf"
+  font_size: 16
+  padding_ratio: 0.1
+
+# Path Configuration
+paths:
+  raw_data_dir: "./data/raw"
+  processed_data_dir: "./data/processed"
+  supported_image_extensions:
+    - "jpg"
+    - "jpeg"
+    - "png"
+    - "gif"
+    - "bmp"
+    - "tiff"
+    - "webp"
+
+# Output Structure
+output_structure:
+  detections_dir: "detections"
+  cropped_persons_dir: "cropped_persons"
+  original_pages_dir: "original_pages"
