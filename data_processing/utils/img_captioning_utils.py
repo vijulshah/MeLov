@@ -8,7 +8,10 @@ from typing import List
 
 import torch
 import yaml
-from captioning_models import CaptioningProcessingConfig, CaptioningResult
+from data_models.img_captioning_data_models import (
+    CaptioningProcessingConfig,
+    CaptioningResult,
+)
 from PIL import Image
 from transformers import BlipForConditionalGeneration, BlipProcessor
 
@@ -59,8 +62,13 @@ class ImageCaptioner:
             self.device = self._get_device()
             logging.info(f"Using device: {self.device}")
 
-            # Load processor and model
-            self.processor = BlipProcessor.from_pretrained(self.config.captioning.model_name)
+            # Load processor and model with configurable fast tokenizer
+            self.processor = BlipProcessor.from_pretrained(
+                self.config.captioning.model_name,
+                use_fast=self.config.captioning.use_fast_processor,  # Configurable fast/slow processor
+            )
+            logging.info(f"Loaded {'fast' if self.config.captioning.use_fast_processor else 'slow'} processor")
+
             self.model = BlipForConditionalGeneration.from_pretrained(self.config.captioning.model_name)
             self.model.to(self.device)
 

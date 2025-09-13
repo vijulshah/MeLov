@@ -2,3 +2,4 @@
 /local/*
 /logs/*
 __pycache__/
+.venv

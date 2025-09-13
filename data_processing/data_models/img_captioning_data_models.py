@@ -18,6 +18,10 @@ class CaptioningConfig(BaseModel):
     device: Optional[str] = Field(default=None, description="Device for model inference (auto-detected if None)")
     batch_size: int = Field(default=4, ge=1, le=16, description="Batch size for captioning")
     overwrite_existing: bool = Field(default=False, description="Whether to overwrite existing caption files")
+    use_fast_processor: bool = Field(
+        default=True,
+        description="Use fast tokenizer (recommended, will be default in transformers v4.52)",
+    )
 
 
 class CaptioningPathConfig(BaseModel):

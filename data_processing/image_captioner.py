@@ -4,8 +4,11 @@ import logging
 import time
 from pathlib import Path
 
-from captioning_models import CaptioningBatchResult, CaptioningResult
-from captioning_utils import (
+from data_models.img_captioning_data_models import (
+    CaptioningBatchResult,
+    CaptioningResult,
+)
+from utils.img_captioning_utils import (
     CaptioningConfigManager,
     CroppedImageDiscovery,
     ImageCaptioner,
@@ -15,7 +18,7 @@ from captioning_utils import (
 class ImageCaptioningProcessor:
     """Main processor for image captioning with BLIP model."""
 
-    def __init__(self, config_path: str = "./data_processing/captioning_config.yaml"):
+    def __init__(self, config_path: str = "./data_processing/configs/img_captioning_config.yaml"):
         self.config = CaptioningConfigManager.load_config(config_path)
         self.captioner = ImageCaptioner(self.config)
 

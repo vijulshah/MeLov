@@ -1,0 +1,29 @@
+detection:
+  batch_size: 8
+  confidence_threshold: 0.8
+  device: null
+  dpi_scale: 300
+  dtype: float16
+  model_name: facebook/detr-resnet-50
+  target_label: person
+output_structure:
+  cropped_persons_dir: cropped_persons
+  detections_dir: detections
+  original_pages_dir: original_pages
+paths:
+  processed_data_dir: ./data/processed
+  raw_data_dir: ./data/raw
+  supported_image_extensions:
+  - jpg
+  - jpeg
+  - png
+  - gif
+  - bmp
+  - tiff
+  - webp
+visualization:
+  bounding_box_color: red
+  bounding_box_width: 2
+  font_name: arial.ttf
+  font_size: 16
+  padding_ratio: 0.1

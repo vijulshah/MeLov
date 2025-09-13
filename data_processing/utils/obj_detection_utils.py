@@ -6,7 +6,11 @@ from typing import List, Optional, Tuple
 import fitz
 import torch
 import yaml
-from models import BoundingBox, Detection, ProcessingConfig
+from data_models.obj_detection_data_models import (
+    BoundingBox,
+    Detection,
+    ProcessingConfig,
+)
 from PIL import Image, ImageDraw, ImageFont
 from transformers import pipeline
 
@@ -192,14 +196,14 @@ class ModelManager:
             model=self.config.detection.model_name,
             dtype=dtype,
             device_map=device,
-            batch_size=self.config.detection.batch_size,  # Use configurable batch size
+            batch_size=self.config.detection.batch_size,
         )
 
-    def _get_device(self) -> int:
+    def _get_device(self) -> str:
         """Get the appropriate device for inference."""
         if self.config.detection.device:
             return self.config.detection.device
-        return 0 if torch.cuda.is_available() else -1
+        return "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def detect_objects(self, image: Image.Image) -> List[Detection]:
         """Perform object detection on an image."""

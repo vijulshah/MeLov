@@ -5,8 +5,13 @@ from pathlib import Path
 from typing import List
 
 import pymupdf
-from models import BatchProcessingResult, Detection, FileType, ProcessingResult
-from utils import (
+from data_models.obj_detection_data_models import (
+    BatchProcessingResult,
+    Detection,
+    FileType,
+    ProcessingResult,
+)
+from utils.obj_detection_utils import (
     ConfigManager,
     DetectionVisualizer,
     DirectoryManager,
@@ -19,7 +24,10 @@ from utils import (
 class DocumentProcessor:
     """Main processor for documents with object detection capabilities."""
 
-    def __init__(self, config_path: str = "./data_processing/config.yaml"):
+    def __init__(
+        self,
+        config_path: str = "./data_processing/configs/object_detection_config.yaml",
+    ):
         self.config = ConfigManager.load_config(config_path)
         self.model_manager = ModelManager(self.config)
         self.visualizer = DetectionVisualizer(self.config)

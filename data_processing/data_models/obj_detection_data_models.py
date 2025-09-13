@@ -29,6 +29,10 @@ class DetectionConfig(BaseModel):
     device: Optional[str] = Field(default=None, description="Device for model inference (auto-detected if None)")
     dtype: str = Field(default="float16", description="Data type for model inference")
     batch_size: int = Field(default=8, ge=1, le=32, description="Batch size for processing multiple images")
+    # use_fast_tokenizer: bool = Field(
+    #     default=True,
+    #     description="Use fast tokenizer (recommended, will be default in transformers v4.52)",
+    # )
 
 
 class VisualizationConfig(BaseModel):
