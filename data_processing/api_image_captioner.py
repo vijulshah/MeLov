@@ -110,7 +110,7 @@ class ApiImageCaptioningProcessor:
                     "output_structure": type(
                         "OutputStructure",
                         (),
-                        {"cropped_persons_dir": "cropped_persons"},
+                        {"original_pages_dir": "original_pages"},
                     )()
                 },
             )(),

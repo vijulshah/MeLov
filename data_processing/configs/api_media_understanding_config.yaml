@@ -72,8 +72,6 @@ prompts:
     video: "You are an expert at analyzing videos. Describe visual content, actions, scenes, audio elements, and temporal changes throughout the video."
     audio: "You are an expert at analyzing audio. Transcribe speech, identify sounds, music, and describe audio characteristics and content."
     multimodal: "You are an expert at multimodal analysis. Analyze and correlate information across different media types to provide comprehensive understanding."
-    # Person captioning specific system prompt
-    person_captioning: "You are an expert at describing people in images. Provide concise, accurate descriptions focusing on visible characteristics."
 
   # Task-specific prompt templates
   tasks:

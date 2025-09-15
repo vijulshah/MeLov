@@ -1,0 +1,149 @@
+# API-based PDF and Document Processing Configuration
+# Supports PDF, DOC, DOCX, TXT, and RTF processing via Google Gemini API
+
+# Document Processing Settings
+document_processing:
+  # Processing configuration
+  processing_mode: "sync"                  # Default processing mode: "sync" or "async"
+  default_task: "extract_text"             # Default task: extract_text, analyze_content, summarize, etc.
+  batch_size: 5                            # Batch size for async processing
+  max_concurrent_requests: 3               # Max concurrent async requests
+
+  # File handling
+  supported_extensions: [".pdf", ".doc", ".docx", ".txt", ".rtf"]
+  max_file_size_mb: 50.0                   # Maximum file size in MB
+  overwrite_existing: false                # Whether to overwrite existing processed files
+
+  # Output settings
+  save_extracted_text: true                # Save extracted text to files
+  save_structured_data: true               # Save structured data as JSON
+  output_format: "txt"                     # Output format for extracted content
+
+# Path Configuration for PDF Processing
+paths:
+  raw_data_dir: "./data/raw"               # Directory containing source documents
+  processed_data_dir: "./data/processed"   # Directory for processed output
+  pdf_analysis_dir: "pdf_analysis"         # Directory for analysis results
+
+# Output Structure
+output_structure:
+  extracted_text_dir: "extracted_text"     # Directory name for extracted text files
+  analysis_results_dir: "analysis_results" # Directory name for analysis results
+  structured_data_dir: "structured_data"   # Directory name for extracted structured data
+  summaries_dir: "summaries"               # Directory name for document summaries
+  metadata_dir: "metadata"                 # Directory name for extracted metadata
+
+# Prompt Configuration for Document Processing
+prompts:
+  # Default prompts for different processing tasks
+  default_prompts:
+    extract_text: "Extract all text content from this document. Preserve formatting and structure where possible. Include any tables, lists, and structured data."
+
+    analyze_content: "Analyze this document and provide insights about its content, structure, purpose, and key information. Include analysis of: 1) Document type and purpose, 2) Main topics and themes, 3) Key information and data points, 4) Document structure and organization, 5) Important conclusions or recommendations."
+
+    summarize: "Provide a comprehensive summary of this document, highlighting the main points and key information. Include: 1) Executive summary of main content, 2) Key findings or conclusions, 3) Important data points or statistics, 4) Actionable recommendations if any."
+
+    extract_structured_data: "Extract structured data from this document including tables, lists, key-value pairs, forms, and other formatted information. Return the data in a clear, organized format. For complex tables, preserve the column headers and row structure."
+
+    classify: "Classify this document by type, topic, and purpose. Identify: 1) Document category (report, contract, manual, etc.), 2) Primary subject/topic, 3) Target audience, 4) Main purpose/objective, 5) Important tags or keywords."
+
+    extract_metadata: "Extract metadata and document properties from this document including: 1) Title and subject, 2) Author/creator information, 3) Creation and modification dates, 4) Document statistics (page count, word count), 5) Keywords and tags, 6) Document version or revision info."
+
+  # Custom prompts for specific use cases
+  custom_prompts:
+    # Add any custom prompts here for specific document types or requirements
+    legal_document_analysis: "Analyze this legal document focusing on: 1) Type of legal document, 2) Parties involved, 3) Key terms and conditions, 4) Important dates and deadlines, 5) Rights and obligations, 6) Potential legal implications."
+
+    financial_report_analysis: "Analyze this financial document focusing on: 1) Type of financial report, 2) Key financial metrics and KPIs, 3) Revenue and expense analysis, 4) Trends and patterns, 5) Notable changes or anomalies, 6) Financial health indicators."
+
+    technical_manual_extraction: "Extract information from this technical manual focusing on: 1) Product/system overview, 2) Installation procedures, 3) Operating instructions, 4) Safety warnings and precautions, 5) Troubleshooting information, 6) Technical specifications."
+
+# API Configuration (reusing Gemini API settings)
+api_settings:
+  # API configuration
+  api_endpoint: "https://generativelanguage.googleapis.com/v1beta"
+  api_key_env_var: "GEMINI_API_KEY"       # Environment variable for API key
+  model_name: "gemini-2.5-flash"          # Gemini model for document processing
+
+  # Generation parameters
+  max_tokens: 2000                        # Maximum tokens in response (higher for documents)
+  temperature: 0.3                        # Lower temperature for more consistent extraction
+
+  # Request configuration
+  timeout: 120                            # Request timeout in seconds (longer for documents)
+  max_retries: 3                          # Maximum number of retries
+  retry_delay: 2.0                        # Delay between retries in seconds
+
+  # Rate limiting (using conservative limits for document processing)
+  rate_limits:
+    rpm: 12                               # Requests per minute (conservative for document processing)
+    tpm: 800000                           # Tokens per minute
+    rpd: 1200                             # Requests per day (conservative limit)
+    max_concurrent_requests: 3            # Maximum concurrent requests
+
+  # File handling
+  use_files_api_threshold_mb: 10          # Use Files API for files larger than this (MB)
+  upload_timeout: 300                     # Timeout for file uploads (5 minutes)
+  auto_delete_uploaded: true              # Auto-delete uploaded files after processing
+
+# Document Type Specific Settings
+document_type_settings:
+  pdf:
+    enabled: true
+    max_pages: 100                        # Maximum pages to process per PDF
+    extract_images: false                 # Whether to extract images from PDFs
+    preserve_formatting: true             # Preserve text formatting when possible
+
+  doc:
+    enabled: true
+    convert_to_text: true                 # Convert DOC to text for processing
+    preserve_styles: false                # Preserve document styles
+
+  docx:
+    enabled: true
+    extract_tables: true                  # Extract tables from DOCX files
+    extract_images: false                 # Extract embedded images
+    preserve_formatting: true             # Preserve formatting
+
+  txt:
+    enabled: true
+    encoding: "utf-8"                     # Default encoding for text files
+    chunk_size_mb: 5                      # Split large text files into chunks
+
+  rtf:
+    enabled: true
+    convert_to_text: true                 # Convert RTF to plain text
+    preserve_formatting: false            # Preserve RTF formatting
+
+# Processing Quality Settings
+quality_settings:
+  # Text extraction quality
+  ocr_confidence_threshold: 0.8           # Minimum OCR confidence for text extraction
+  min_text_length: 50                     # Minimum text length to consider document valid
+  max_text_length: 100000                 # Maximum text length to process
+
+  # Content analysis quality
+  enable_language_detection: true         # Detect document language
+  enable_sentiment_analysis: false        # Enable sentiment analysis (if available)
+  enable_entity_extraction: false         # Enable named entity extraction
+
+# Logging and Monitoring
+logging:
+  level: "INFO"                           # Log level: DEBUG, INFO, WARNING, ERROR
+  log_file: "logs/api_pdf_processing.log" # Log file path
+  enable_progress_bar: true               # Show progress bars during processing
+  log_api_responses: false                # Log API responses (for debugging)
+
+# Cost Tracking and Limits
+cost_tracking:
+  enabled: true
+  token_cost_per_1k: 0.01                 # Cost per 1000 tokens
+  daily_budget_limit: 5.00                # Daily budget limit in USD
+  warn_at_percentage: 80                  # Warn when reaching this % of daily budget
+
+# Error Handling
+error_handling:
+  skip_corrupted_files: true              # Skip corrupted or unreadable files
+  continue_on_errors: true                # Continue processing other files if one fails
+  max_consecutive_failures: 5             # Stop after this many consecutive failures
+  create_error_reports: true              # Create detailed error reports

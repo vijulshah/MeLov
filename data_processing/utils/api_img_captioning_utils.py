@@ -18,7 +18,7 @@ class CroppedImageDiscovery:
     def find_cropped_images(base_path: Path, config=None) -> List[Path]:
         """Find all cropped person images in the processed data directory."""
         cropped_images = []
-        cropped_dir_name = "cropped_persons"  # Use default name since we're simplifying
+        cropped_dir_name = "original_pages"  # Use default name since we're simplifying
 
         # Recursively search for cropped_persons directories
         for root, dirs, files in os.walk(base_path):
@@ -29,7 +29,7 @@ class CroppedImageDiscovery:
                         image_path = Path(root) / file
                         cropped_images.append(image_path)
 
-        logging.info(f"Found {len(cropped_images)} cropped person images")
+        logging.info(f"Found {len(cropped_images)} images")
         return sorted(cropped_images)
 
 
