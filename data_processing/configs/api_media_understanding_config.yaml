@@ -1,0 +1,117 @@
+# API-based Media Understanding Configuration
+# Supports Document, Image, Video, and Audio processing via Google Gemini API
+
+# API Media Understanding Settings
+api_media_understanding:
+  # API configuration
+  api_endpoint: "https://generativelanguage.googleapis.com/v1beta"  # Gemini API endpoint
+  api_key_env_var: "GEMINI_API_KEY"       # Environment variable for API key
+  model_name: "gemini-2.5-flash"          # Gemini model for media understanding
+
+  # Generation parameters
+  max_tokens: 500                         # Maximum tokens in response
+  temperature: 0.7                        # Temperature for generation (0.0-2.0)
+
+  # Request configuration
+  timeout: 60                             # Request timeout in seconds (longer for media)
+  max_retries: 3                          # Maximum number of retries
+  retry_delay: 1.0                        # Delay between retries in seconds
+  batch_size: 1                           # Number of concurrent API calls
+
+  # Rate limiting configuration (Google Gemini API Free Tier limits)
+  rate_limits:
+    rpm: 15                               # Requests per minute (Free tier: 15)
+    tpm: 1000000                          # Tokens per minute (Free tier: 1M)
+    rpd: 1500                             # Requests per day (Free tier: 1500)
+    max_concurrent_requests: 5            # Maximum concurrent requests (safe limit)
+
+  # Media type support
+  supported_media_types:
+    images:
+      enabled: true
+      formats: ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]
+      max_files_per_request: 3600         # Gemini limit for images
+      max_inline_size_mb: 20              # Use Files API for larger files
+      token_cost_per_image: 258           # Base tokens per image (<=384px)
+
+    documents:
+      enabled: true
+      formats: ["application/pdf"]
+      max_pages: 1000                     # Gemini limit for document pages
+      max_inline_size_mb: 20              # Use Files API for larger files
+      token_cost_per_page: 258            # Tokens per document page
+
+    videos:
+      enabled: true
+      formats: ["video/mp4", "video/mpeg", "video/mov", "video/avi", "video/x-flv", "video/mpg", "video/webm", "video/wmv", "video/3gpp"]
+      max_files_per_request: 10           # Gemini 2.5+ limit
+      max_inline_size_mb: 20              # Use Files API for larger files
+      max_duration_hours: 2               # 2M context window limit
+      max_duration_hours_low_res: 6       # Low resolution limit
+      token_cost_per_second: 300          # ~300 tokens per second (default resolution)
+      token_cost_per_second_low_res: 100  # ~100 tokens per second (low resolution)
+      default_fps: 1                      # Default frames per second sampling
+
+    audio:
+      enabled: true
+      formats: ["audio/wav", "audio/mp3", "audio/aiff", "audio/aac", "audio/ogg", "audio/flac"]
+      max_duration_hours: 9.5             # Gemini limit for audio
+      max_inline_size_mb: 20              # Use Files API for larger files
+      token_cost_per_second: 32           # Tokens per second of audio
+
+  # Processing behavior
+  overwrite_existing: false               # Whether to overwrite existing analysis files
+  use_files_api_threshold_mb: 15          # Use Files API for files larger than this
+
+# Prompt Configuration for different media types and tasks
+prompts:
+  # System prompts for different media types
+  system_prompts:
+    image: "You are an expert at analyzing images. Provide detailed, accurate descriptions and analysis focusing on visible content, objects, people, text, and visual elements."
+    document: "You are an expert at analyzing documents. Extract, interpret, and summarize content including text, tables, charts, diagrams, and layout information."
+    video: "You are an expert at analyzing videos. Describe visual content, actions, scenes, audio elements, and temporal changes throughout the video."
+    audio: "You are an expert at analyzing audio. Transcribe speech, identify sounds, music, and describe audio characteristics and content."
+    multimodal: "You are an expert at multimodal analysis. Analyze and correlate information across different media types to provide comprehensive understanding."
+
+  # Task-specific prompt templates
+  tasks:
+    describe: "Provide a detailed description of this {media_type}. Focus on key visual/audio elements, content, and any notable features."
+    analyze: "Analyze this {media_type} and provide insights about its content, structure, and meaning."
+    extract: "Extract all important information from this {media_type}, including text, data, objects, and key details."
+    summarize: "Provide a concise summary of the main content and key points in this {media_type}."
+    transcribe: "Provide a complete transcript of the audio/video content with timestamps where relevant."
+    caption: "Generate a concise caption describing the main content of this {media_type}."
+    classify: "Classify and categorize the content in this {media_type}, identifying main themes and topics."
+    compare: "Compare and contrast the content across these multiple {media_type} files."
+
+  # Default prompts for specific use cases
+  default_prompts:
+    image_understanding: "Analyze this image and describe what you see, including objects, people, text, scenes, and any notable visual elements."
+    document_analysis: "Analyze this document and extract key information including text content, tables, charts, and document structure."
+    video_understanding: "Analyze this video and describe the visual content, actions, scenes, and any audio elements you can identify."
+    audio_analysis: "Analyze this audio file and provide a transcript along with description of any non-speech sounds, music, or audio characteristics."
+
+# Path Configuration for Media Understanding
+paths:
+  processed_data_dir: "./data/processed"
+  media_analysis_dir: "media_analysis"    # Directory for analysis results
+
+# Output Structure
+output_structure:
+  analysis_results_dir: "analysis_results"
+  transcripts_dir: "transcripts"
+  summaries_dir: "summaries"
+  extracted_data_dir: "extracted_data"
+
+# File handling configuration
+file_handling:
+  upload_timeout: 300                     # Timeout for file uploads (5 minutes)
+  storage_duration_hours: 48              # Files API storage duration
+  max_storage_mb: 50                      # Files API storage limit
+  auto_delete_uploaded: true              # Auto-delete uploaded files after processing
+
+# Cost tracking (optional - for usage monitoring)
+cost_tracking:
+  enabled: true
+  token_cost_per_1k: 0.01                 # Cost per 1000 tokens (adjust based on API pricing)
+  file_upload_cost: 0.0                   # Files API is free
