@@ -72,6 +72,8 @@ prompts:
     video: "You are an expert at analyzing videos. Describe visual content, actions, scenes, audio elements, and temporal changes throughout the video."
     audio: "You are an expert at analyzing audio. Transcribe speech, identify sounds, music, and describe audio characteristics and content."
     multimodal: "You are an expert at multimodal analysis. Analyze and correlate information across different media types to provide comprehensive understanding."
+    # Person captioning specific system prompt
+    person_captioning: "You are an expert at describing people in images. Provide concise, accurate descriptions focusing on visible characteristics."
 
   # Task-specific prompt templates
   tasks:
@@ -90,6 +92,8 @@ prompts:
     document_analysis: "Analyze this document and extract key information including text content, tables, charts, and document structure."
     video_understanding: "Analyze this video and describe the visual content, actions, scenes, and any audio elements you can identify."
     audio_analysis: "Analyze this audio file and provide a transcript along with description of any non-speech sounds, music, or audio characteristics."
+    # Person captioning specific default prompt
+    person_image_captioning: "Describe this person in detail, focusing on their appearance, clothing, and any visible characteristics. Keep the description under 50 words."
 
 # Path Configuration for Media Understanding
 paths:

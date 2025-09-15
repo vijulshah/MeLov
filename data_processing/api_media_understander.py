@@ -14,7 +14,6 @@ from data_models.api_media_understanding_data_models import (
     ProcessingTask,
     VideoMetadata,
 )
-from google import genai
 from tqdm import tqdm
 from utils.api_media_understanding_utils import (
     ApiMediaUnderstander,
@@ -360,39 +359,6 @@ class ApiMediaUnderstandingProcessor:
 
         logging.info("=" * 50)
 
-    def validate_api_setup(self) -> bool:
-        """Validate that the API is properly configured and accessible."""
-        try:
-            import os
-
-            # Check if API key is available
-            api_key = os.getenv(self.config.api_media_understanding.api_key_env_var)
-            if not api_key:
-                logging.error(
-                    f"API key not found in environment variable: {self.config.api_media_understanding.api_key_env_var}"
-                )
-                return False
-
-            # Try to import and initialize Gemini client
-            try:
-                client = genai.Client(api_key=api_key)
-                logging.info("Gemini API client initialized successfully")
-            except ImportError:
-                logging.error("Google GenAI library not found. Please install with: pip install google-generativeai")
-                return False
-            except Exception as e:
-                logging.error(f"Failed to initialize Gemini client: {str(e)}")
-                return False
-
-            logging.info("API configuration appears valid")
-            logging.info(f"Using model: {self.config.api_media_understanding.model_name}")
-            logging.info(f"API endpoint: {self.config.api_media_understanding.api_endpoint}")
-            return True
-
-        except Exception as e:
-            logging.error(f"API validation failed: {str(e)}")
-            return False
-
 
 def main():
     """Main entry point for the API-based media understanding system."""
@@ -402,11 +368,6 @@ def main():
 
         # Initialize processor
         processor = ApiMediaUnderstandingProcessor()
-
-        # Validate API setup
-        if not processor.validate_api_setup():
-            logging.error("API setup validation failed. Please check your configuration and API key.")
-            return
 
         # Display rate limiting information
         rate_limits = processor.config.api_media_understanding.rate_limits

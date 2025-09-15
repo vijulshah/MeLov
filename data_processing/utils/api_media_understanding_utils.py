@@ -21,6 +21,7 @@ from data_models.api_media_understanding_data_models import (
     TokenCalculator,
     VideoMetadata,
 )
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from PIL import Image
@@ -201,11 +202,23 @@ class ApiMediaUnderstander:
         self.api_key = self._get_api_key()
 
     def _get_api_key(self) -> str:
-        """Get API key from environment variable."""
+        """Get API key from environment variable or .env file."""
+        # First, try to get from environment variable
         api_key = os.getenv(self.config.api_media_understanding.api_key_env_var)
+
+        if not api_key:
+            # Try to load from .env file in project root
+            project_root = Path(__file__).parent.parent.parent  # Go up to project root
+            env_file = project_root / ".env"
+
+            if env_file.exists():
+                load_dotenv(env_file)
+                api_key = os.getenv(self.config.api_media_understanding.api_key_env_var)
+
         if not api_key:
             raise ValueError(
-                f"API key not found in environment variable: {self.config.api_media_understanding.api_key_env_var}"
+                f"API key not found in environment variable: {self.config.api_media_understanding.api_key_env_var}. "
+                f"Please set the environment variable or add it to .env file in project root."
             )
         return api_key
 
@@ -242,7 +255,7 @@ class ApiMediaUnderstander:
             parts = []
 
             # Add text prompt
-            parts.append(types.Part.from_text(prompt))
+            parts.append(types.Part.from_text(text=prompt))
 
             # Handle file upload vs inline data
             if self._should_use_files_api(media_file):
